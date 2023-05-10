@@ -1,0 +1,54 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: dc-custom-strategy-test
+spec:
+  replicas: 4
+  selector:
+    deployment-config.name: dc-custom-strategy-test
+  strategy:
+    type: Rolling
+    customParams:
+      image: openshift/origin-deployer
+      command:
+      - /usr/bin/bash
+      - -c
+      - |
+        set -e
+        export DC_NAME=$(oc get rc ${OPENSHIFT_DEPLOYMENT_NAME} -o=jsonpath="{.metadata.ownerReferences[0].name}" -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE})
+        export REPLICAS=$(oc get deploymentconfig ${DC_NAME} -o jsonpath="{.spec.replicas}" -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE})
+        echo "About to scale down to 1"
+        oc scale dc/${DC_NAME} --replicas=1 -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE}
+        openshift-deploy --deployment ${OPENSHIFT_DEPLOYMENT_NAME}
+        echo "About to scale up to original `$REPLICAS` numbers"
+        oc scale dc/${DC_NAME} --replicas=${REPLICAS} -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE}
+
+    rollingParams:
+      maxSurge: 1
+      maxUnavailable: 3
+  template:
+    metadata:
+      labels:
+        deployment-config.name: dc-custom-strategy-test
+        app-version: v5
+    spec:
+      containers:
+      - image: busybox
+        name: default-container
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - "sleep 15 ; echo \"service is ready\" ; echo 1  >> /tmp/readiness.out ; sleep infinity"
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 4
+          exec:
+            command:
+            - cat
+            - /tmp/readiness.out
+
+  test: false
+  triggers:
+    - type: ConfigChange

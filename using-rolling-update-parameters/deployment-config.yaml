@@ -1,0 +1,41 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: dc-custom-strategy-test
+spec:
+  replicas: 4
+  selector:
+    deployment-config.name: dc-custom-strategy-test
+  strategy:
+    type: Rolling
+    customParams:
+      image: openshift/origin-deployer
+    rollingParams:
+      maxSurge: 1
+      maxUnavailable: 3
+  template:
+    metadata:
+      labels:
+        deployment-config.name: dc-custom-strategy-test
+        app-version: v1
+    spec:
+      containers:
+      - image: busybox
+        name: default-container
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - "sleep 15 ; echo \"service is ready\" ; echo 1  >> /tmp/readiness.out ; sleep infinity"
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 4
+          exec:
+            command:
+            - cat
+            - /tmp/readiness.out
+
+  test: false
+  triggers:
+    - type: ConfigChange
