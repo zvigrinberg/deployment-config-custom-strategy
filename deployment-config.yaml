@@ -19,7 +19,8 @@ spec:
         export REPLICAS=$(oc get deploymentconfig ${DC_NAME} -o jsonpath="{.spec.replicas}" -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE})
         echo "About to scale down to 1"
         oc scale rc/${OPENSHIFT_DEPLOYMENT_NAME} --replicas=1 -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE}
-        readyReplicas=$(oc get rc dc-custom-strategy-test-2 -o=jsonpath="{.status.readyReplicas}")
+        readyReplicas=$(oc get rc ${OPENSHIFT_DEPLOYMENT_NAME} -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE} -o=jsonpath="{.status.readyReplicas}")
+        echo "Waiting for 1 replica of new version to be ready"
         echo "readyReplicas="  $readyReplicas
         while [ "$readyReplicas" == "" ] 
         do
@@ -27,13 +28,15 @@ spec:
           readyReplicas=$(oc get rc ${OPENSHIFT_DEPLOYMENT_NAME} -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE} -o=jsonpath="{.status.readyReplicas}")
           echo "readyReplicas="  $readyReplicas
         done
+        echo "New version Replica is Ready"
+        echo "Continuing with the replacing all older version replicas with new ones at once!"
         openshift-deploy --deployment ${OPENSHIFT_DEPLOYMENT_NAME} --until 100%
 
   template:
     metadata:
       labels:
         deployment-config.name: dc-custom-strategy-test
-        app-version: v1
+        app-version: v4
     spec:
       containers:
       - image: busybox

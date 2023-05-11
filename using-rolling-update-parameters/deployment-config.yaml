@@ -17,7 +17,7 @@ spec:
     metadata:
       labels:
         deployment-config.name: dc-custom-strategy-test
-        app-version: v1
+        app-version: v3
     spec:
       containers:
       - image: busybox
