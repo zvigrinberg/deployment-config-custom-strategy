@@ -7,7 +7,7 @@ spec:
   selector:
     deployment-config.name: dc-custom-strategy-test
   strategy:
-    type: Rolling
+    type: Recreate
     customParams:
       image: openshift/origin-deployer
       command:
@@ -18,19 +18,22 @@ spec:
         export DC_NAME=$(oc get rc ${OPENSHIFT_DEPLOYMENT_NAME} -o=jsonpath="{.metadata.ownerReferences[0].name}" -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE})
         export REPLICAS=$(oc get deploymentconfig ${DC_NAME} -o jsonpath="{.spec.replicas}" -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE})
         echo "About to scale down to 1"
-        oc scale dc/${DC_NAME} --replicas=1 -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE}
-        openshift-deploy --deployment ${OPENSHIFT_DEPLOYMENT_NAME}
-        echo "About to scale up to original `$REPLICAS` numbers"
-        oc scale dc/${DC_NAME} --replicas=${REPLICAS} -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE}
+        oc scale rc/${OPENSHIFT_DEPLOYMENT_NAME} --replicas=1 -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE}
+        readyReplicas=$(oc get rc dc-custom-strategy-test-2 -o=jsonpath="{.status.readyReplicas}")
+        echo "readyReplicas="  $readyReplicas
+        while [ "$readyReplicas" == "" ] 
+        do
+          sleep 1
+          readyReplicas=$(oc get rc ${OPENSHIFT_DEPLOYMENT_NAME} -n ${OPENSHIFT_DEPLOYMENT_NAMESPACE} -o=jsonpath="{.status.readyReplicas}")
+          echo "readyReplicas="  $readyReplicas
+        done
+        openshift-deploy --deployment ${OPENSHIFT_DEPLOYMENT_NAME} --until 100%
 
-    rollingParams:
-      maxSurge: 1
-      maxUnavailable: 3
   template:
     metadata:
       labels:
         deployment-config.name: dc-custom-strategy-test
-        app-version: v5
+        app-version: v1
     spec:
       containers:
       - image: busybox
