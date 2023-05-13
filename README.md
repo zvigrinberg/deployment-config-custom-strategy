@@ -151,8 +151,11 @@ watch --interval 1 oc get pods  --sort-by '{.metadata.name}
 kustomize build . | oc delete -f -
 ```
 
+Demo:
+
+![sample](./demo.gif)
+
 ### Rolling Update Strategy With Specific RollingUpdate Params
 
 1. oc apply -f using-rolling-
 
-![sample](./test.gif)
