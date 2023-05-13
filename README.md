@@ -124,9 +124,35 @@ spec:
 
 3. Now apply using a kustomization overlay all the above to the new project:
 ```shell
-oc kustomize .  | apply -f -
+oc kustomize .  | oc apply -f -
 ```
 
-4. 
+4. Watch the deployment process in live
+```shell
+watch --interval 1 oc get pods  --sort-by '{.metadata.name}'
+```
+
+5. When all replicas are ready, change .spec.template.metadata.labels.app-version (for example , to value of v2) in deploymentconfig manifest file , and apply again deploymentconfig to cluster:
+```shell
+oc apply -f deployment-config.yaml
+```
+Or directly with json patch 
+```shell
+oc patch dc dc-custom-strategy-test  --type='json' -p='[{"op": "replace", "path": "/spec/template/metadata/labels/app-version", "value": "v2" }]'
+```
+
+6. Watch the deployment process in live, take a look how no downtime of service is achieved.
+```shell
+watch --interval 1 oc get pods  --sort-by '{.metadata.name}
+```
+
+7. When deployment is over, delete everything:
+```shell
+kustomize build . | oc delete -f -
+```
 
 ### Rolling Update Strategy With Specific RollingUpdate Params
+
+1. oc apply -f using-rolling-
+
+![sample](./test.gif)
