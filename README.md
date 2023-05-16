@@ -157,5 +157,82 @@ Demo:
 
 ### Rolling Update Strategy With Specific RollingUpdate Params
 
-1. oc apply -f using-rolling-
+There is a formula that should do the work in general , if you consider the number of replicas to be n , then you define it as follows:
 
+for n=1 , it's trivial and you don't need to set any special parameters, just use rolling update strategy, which is the default.
+
+for n > 1 , you should define the following:
+
+spec.strategy.rollingParams.maxSurge = 1
+
+spec.strategy.rollingParams.maxUnavailable = n-1 
+
+1. For example, for n=4 , Need to deploy the following deployment config: 
+
+```yaml
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: dc-rolling-strategy-test
+spec:
+  replicas: 4
+  selector:
+    deployment-config.name: dc-custom-strategy-test
+  strategy:
+    type: Rolling
+    customParams:
+      image: openshift/origin-deployer
+    rollingParams:
+      maxSurge: 1
+      maxUnavailable: 3
+  template:
+    metadata:
+      labels:
+        deployment-config.name: dc-custom-strategy-test
+        app-version: v1
+    spec:
+      containers:
+      - image: busybox
+        name: default-container
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - "sleep 15 ; echo \"service is ready\" ; echo 1  >> /tmp/readiness.out ; sleep infinity"
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 4
+          exec:
+            command:
+            - cat
+            - /tmp/readiness.out
+
+  test: false
+  triggers:
+    - type: ConfigChange
+```
+```shell
+oc apply -f using-rolling-update-parameters/deployment-config.yaml
+```
+
+2. Watch the deployment process in live
+```shell
+watch --interval 1 oc get pods  --sort-by '{.metadata.name}'
+```
+
+
+3. Once all replicas are up and ready, "upgrade" to next version by using a json patch:
+```shell
+oc patch dc dc-rolling-strategy-test  --type='json' -p='[{"op": "replace", "path": "/spec/template/metadata/labels/app-version", "value": "v2" }]'
+```
+
+4. Watch the deployment process in live, take a look how no downtime of service is achieved.
+```shell
+watch --interval 1 oc get pods  --sort-by '{.metadata.name}
+```
+
+5. When all pods of new revision is up and ready, you can delete it to release resources:
+```shell
+oc delete -f using-rolling-update-parameters/deployment-config.yaml
+```

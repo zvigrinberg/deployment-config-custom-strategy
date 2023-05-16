@@ -1,7 +1,7 @@
 apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
-  name: dc-custom-strategy-test
+  name: dc-rolling-strategy-test
 spec:
   replicas: 4
   selector:
@@ -17,7 +17,7 @@ spec:
     metadata:
       labels:
         deployment-config.name: dc-custom-strategy-test
-        app-version: v3
+        app-version: v1
     spec:
       containers:
       - image: busybox
