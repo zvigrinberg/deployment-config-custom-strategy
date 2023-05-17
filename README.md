@@ -159,13 +159,13 @@ Demo:
 
 There is a formula that should do the work in general , if you consider the number of replicas to be n , then you define it as follows:
 
-for n=1 , it's trivial and you don't need to set any special parameters, just use rolling update strategy, which is the default.
+**for n=1 , it's trivial and you don't need to set any special parameters, just use rolling update strategy, which is the default.**
 
-for n > 1 , you should define the following:
+**for n > 1 , you should define the following:**
 
-spec.strategy.rollingParams.maxSurge = 1
+- spec.strategy.rollingParams.maxSurge = 1
 
-spec.strategy.rollingParams.maxUnavailable = n-1 
+- spec.strategy.rollingParams.maxUnavailable = n-1 
 
 1. For example, for n=4 , Need to deploy the following deployment config: 
 
